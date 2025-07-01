@@ -1,0 +1,44 @@
+{
+  "recommendations": [
+    // === Svelte/Frontend Development ===
+    "svelte.svelte-vscode",
+    "bradlc.vscode-tailwindcss",
+    "ms-vscode.vscode-typescript-next",
+    "esbenp.prettier-vscode",
+    "dbaeumer.vscode-eslint",
+    // === Python/Backend Development ===
+    "ms-python.python",
+    "ms-python.black-formatter",
+    "ms-python.isort",
+    "ms-python.flake8",
+    "ms-python.mypy-type-checker",
+    "ms-python.pylint",
+    // === Docker & DevOps ===
+    "ms-azuretools.vscode-docker",
+    "ms-vscode-remote.remote-containers",
+    // === Git & Version Control ===
+    "eamodio.gitlens",
+    "github.vscode-pull-request-github",
+    // === General Development ===
+    "ms-vscode.vscode-json",
+    "redhat.vscode-yaml",
+    "ms-vscode.vscode-markdown",
+    "yzhang.markdown-all-in-one",
+    "davidanson.vscode-markdownlint",
+    // === Environment & Configuration ===
+    "mikestead.dotenv",
+    "streetsidesoftware.code-spell-checker",
+    // === API Development ===
+    "humao.rest-client",
+    "42crunch.vscode-openapi",
+    // === Productivity ===
+    "ms-vscode.vscode-todo-highlight",
+    "gruntfuggly.todo-tree",
+    "aaron-bond.better-comments",
+    "formulahendry.auto-rename-tag",
+    "christian-kohler.path-intellisense"
+  ],
+  "unwantedRecommendations": [
+    "ms-python.pylance"
+  ]
+}

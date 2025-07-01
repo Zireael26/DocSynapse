@@ -1,0 +1,87 @@
+{
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit",
+    "source.organizeImports": "explicit"
+  },
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.detectIndentation": false,
+  "editor.rulers": [80, 120],
+  "editor.wordWrap": "on",
+  "files.eol": "\n",
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "files.trimFinalNewlines": true,
+  
+  // === Python Settings ===
+  "python.defaultInterpreterPath": "./backend/venv/bin/python",
+  "python.terminal.activateEnvironment": true,
+  "python.linting.enabled": true,
+  "python.linting.pylintEnabled": false,
+  "python.linting.flake8Enabled": true,
+  "python.linting.mypyEnabled": true,
+  "python.formatting.provider": "black",
+  "python.formatting.blackArgs": ["--line-length=88"],
+  "python.sortImports.args": ["--profile=black"],
+  "python.analysis.typeCheckingMode": "basic",
+  "python.testing.pytestEnabled": true,
+  "python.testing.pytestArgs": ["backend/tests"],
+  
+  // === TypeScript/JavaScript Settings ===
+  "typescript.preferences.importModuleSpecifier": "relative",
+  "typescript.preferences.includePackageJsonAutoImports": "on",
+  "javascript.preferences.importModuleSpecifier": "relative",
+  "svelte.enable-ts-plugin": true,
+  
+  // === File Associations ===
+  "files.associations": {
+    "*.svelte": "svelte",
+    "*.env.*": "dotenv",
+    ".env": "dotenv",
+    "docker-compose*.yml": "dockercompose",
+    "Dockerfile*": "dockerfile"
+  },
+  
+  // === Extensions Configuration ===
+  "emmet.includeLanguages": {
+    "svelte": "html"
+  },
+  
+  // === Git Settings ===
+  "git.autofetch": true,
+  "git.confirmSync": false,
+  "git.enableSmartCommit": true,
+  
+  // === Search Settings ===
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/venv": true,
+    "**/dist": true,
+    "**/build": true,
+    "**/.svelte-kit": true,
+    "**/output": true,
+    "**/logs": true,
+    "**/__pycache__": true,
+    "**/.pytest_cache": true,
+    "**/coverage": true
+  },
+  
+  // === File Watcher Settings ===
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/venv/**": true,
+    "**/dist/**": true,
+    "**/build/**": true,
+    "**/.svelte-kit/**": true,
+    "**/output/**": true,
+    "**/logs/**": true,
+    "**/__pycache__/**": true
+  },
+  
+  // === Terminal Settings ===
+  "terminal.integrated.cwd": "${workspaceFolder}",
+  "terminal.integrated.env.osx": {
+    "PATH": "${workspaceFolder}/backend/venv/bin:${env:PATH}"
+  }
+}
