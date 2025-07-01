@@ -1,0 +1,1 @@
+# DocSynapse Backend Application
