@@ -242,10 +242,12 @@ class CrawlerService:
             self.job_results[job_id] = result
 
     async def _discover_pages(self, context: BrowserContext, base_url: str, config: CrawlConfig) -> List[str]:
-        """Discover all pages to crawl from the base URL."""
+        """Discover all pages to crawl from the base URL using breadth-first search with depth limiting."""
         urls_found: Set[str] = {base_url}  # Always include the base URL
-        urls_to_process: List[str] = [base_url]
         processed_urls: Set[str] = set()
+
+        # Use a queue with depth tracking: (url, depth)
+        urls_to_process: List[Tuple[str, int]] = [(base_url, 0)]
 
         # Parse base domain for filtering
         base_domain = urlparse(base_url).netloc
@@ -254,13 +256,18 @@ class CrawlerService:
 
         try:
             while urls_to_process and len(urls_found) < config.max_pages:
-                current_url = urls_to_process.pop(0)
+                current_url, current_depth = urls_to_process.pop(0)
 
                 if current_url in processed_urls:
                     continue
 
+                # Skip if we've exceeded max depth
+                if current_depth >= config.max_depth:
+                    logger.debug(f"Skipping {current_url} - exceeded max depth {config.max_depth}")
+                    continue
+
                 processed_urls.add(current_url)
-                logger.debug(f"Processing URL for discovery: {current_url}")
+                logger.debug(f"Processing URL for discovery (depth {current_depth}): {current_url}")
 
                 try:
                     # Navigate to page
@@ -283,14 +290,19 @@ class CrawlerService:
                                     links.push(href);
                                 }
                             });
-                            return links;
+                            return [...new Set(links)]; // Remove duplicates
                         }
                     """)
 
-                    logger.debug(f"Found {len(links)} links on {current_url}")
+                    logger.debug(f"Found {len(links)} unique links on {current_url}")
 
                     # Process found links
+                    new_urls_count = 0
                     for link in links:
+                        if len(urls_found) >= config.max_pages:
+                            logger.debug(f"Reached max pages limit ({config.max_pages}), stopping discovery")
+                            break
+
                         absolute_url = urljoin(current_url, link)
                         parsed_url = urlparse(absolute_url)
 
@@ -305,6 +317,10 @@ class CrawlerService:
                         if config.include_patterns and not any(re.search(pattern, absolute_url) for pattern in config.include_patterns):
                             continue
 
+                        # Apply language filtering
+                        if self._is_non_english_url(absolute_url, base_domain):
+                            continue  # Removed debug logging to reduce spam
+
                         # Clean URL (remove fragments)
                         clean_url = f"{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path}"
                         if parsed_url.query:
@@ -312,8 +328,13 @@ class CrawlerService:
 
                         if clean_url not in urls_found and clean_url not in processed_urls:
                             urls_found.add(clean_url)
-                            urls_to_process.append(clean_url)
-                            logger.debug(f"Added new URL to crawl: {clean_url}")
+                            # Only add to processing queue if we haven't reached max depth
+                            if current_depth + 1 < config.max_depth:
+                                urls_to_process.append((clean_url, current_depth + 1))
+                            new_urls_count += 1
+                            logger.debug(f"Added new URL to crawl (depth {current_depth + 1}): {clean_url}")
+
+                    logger.debug(f"Added {new_urls_count} new URLs from {current_url}")
 
                 except Exception as e:
                     logger.warning(f"Failed to process {current_url}: {e}")
@@ -323,8 +344,56 @@ class CrawlerService:
             await page.close()
 
         result_urls = list(urls_found)
-        logger.info(f"Page discovery completed: found {len(result_urls)} URLs")
+        logger.info(f"Page discovery completed: found {len(result_urls)} URLs (max depth: {config.max_depth})")
         return result_urls
+
+    def _is_non_english_url(self, url: str, domain: str) -> bool:
+        """
+        Check if URL should be skipped based on language patterns.
+        """
+        from app.core.config import settings
+
+        # Get language filter configuration
+        language_filters = settings.LANGUAGE_FILTERS
+
+        # Check domain-specific patterns first
+        domain_patterns = language_filters.get('domain_patterns', {})
+        if domain in domain_patterns:
+            for pattern in domain_patterns[domain]:
+                if re.search(pattern, url):
+                    return True
+
+        # Check general language patterns
+        exclude_patterns = language_filters.get('exclude_patterns', [])
+        for pattern in exclude_patterns:
+            if re.search(pattern, url):
+                return True
+
+        # Additional heuristic: check for common language codes in path
+        parsed_url = urlparse(url)
+        path_parts = [part for part in parsed_url.path.split('/') if part]
+
+        # Extract language codes from config patterns instead of hardcoding
+        non_english_langs = set()
+
+        # Extract from exclude_patterns (remove regex markers and slashes)
+        for pattern in exclude_patterns:
+            # Extract language code from patterns like r'/zh/', r'/zh-cn/', etc.
+            clean_pattern = pattern.strip('r/\'\"()').strip('/')
+            if clean_pattern and not clean_pattern.startswith('[') and not clean_pattern.startswith('\\'):
+                non_english_langs.add(clean_pattern)
+
+        # Extract from domain-specific patterns
+        for domain_patterns_list in domain_patterns.values():
+            for pattern in domain_patterns_list:
+                clean_pattern = pattern.strip('r/\'\"()').strip('/')
+                if clean_pattern and not clean_pattern.startswith('[') and not clean_pattern.startswith('\\'):
+                    non_english_langs.add(clean_pattern)
+
+        if path_parts and path_parts[0] in non_english_langs:
+            return True
+
+        return False
 
     async def _crawl_page(self, context: BrowserContext, url: str, config: CrawlConfig) -> Optional[PageInfo]:
         """Crawl a single page and extract its content."""

@@ -53,6 +53,75 @@ class Settings(BaseSettings):
     # Security Settings
     MAX_CONTENT_LENGTH: int = 100 * 1024 * 1024  # 100MB
 
+    # Language filtering configuration
+    LANGUAGE_FILTERS: dict = {
+        # Common language path patterns to exclude
+        'exclude_patterns': [
+            r'/zh/',           # Chinese
+            r'/zh-cn/',        # Chinese Simplified
+            r'/zh-tw/',        # Chinese Traditional
+            r'/zh-hant/',      # Chinese Traditional (FastAPI specific)
+            r'/ja/',           # Japanese
+            r'/fr/',           # French
+            r'/es/',           # Spanish
+            r'/de/',           # German
+            r'/it/',           # Italian
+            r'/pt/',           # Portuguese
+            r'/ru/',           # Russian
+            r'/ko/',           # Korean
+            r'/ar/',           # Arabic
+            r'/hi/',           # Hindi
+            r'/tr/',           # Turkish
+            r'/az/',           # Azerbaijani
+            r'/bn/',           # Bengali
+            r'/fa/',           # Persian/Farsi
+            r'/he/',           # Hebrew
+            r'/id/',           # Indonesian
+            r'/uk/',           # Ukrainian
+            r'/ur/',           # Urdu
+            r'/vi/',           # Vietnamese
+            r'/yo/',           # Yoruba
+            r'/em/',           # Emoji/Special case
+            r'/hu/',           # Hungarian
+            r'/pl/',           # Polish
+            r'/nl/',           # Dutch
+            # Add more patterns as needed
+        ],
+
+        # Preferred language (usually English)
+        'preferred_language': 'en',
+
+        # Domain-specific language patterns
+        'domain_patterns': {
+            'fastapi.tiangolo.com': [
+                r'/zh-hant/',      # FastAPI Chinese Traditional
+                r'/ja/',           # FastAPI Japanese
+                r'/fr/',           # FastAPI French
+                r'/es/',           # FastAPI Spanish
+                r'/de/',           # FastAPI German
+                r'/pt/',           # FastAPI Portuguese
+                r'/ru/',           # FastAPI Russian
+                r'/ko/',           # FastAPI Korean
+                r'/ar/',           # FastAPI Arabic
+                r'/hi/',           # FastAPI Hindi
+                r'/tr/',           # FastAPI Turkish
+                r'/az/',           # FastAPI Azerbaijani
+                r'/bn/',           # FastAPI Bengali
+                r'/fa/',           # FastAPI Persian/Farsi
+                r'/he/',           # FastAPI Hebrew
+                r'/id/',           # FastAPI Indonesian
+                r'/uk/',           # FastAPI Ukrainian
+                r'/ur/',           # FastAPI Urdu
+                r'/vi/',           # FastAPI Vietnamese
+                r'/yo/',           # FastAPI Yoruba
+                r'/em/',           # FastAPI Emoji/Special
+                r'/hu/',           # FastAPI Hungarian
+                r'/pl/',           # FastAPI Polish
+                r'/nl/',           # FastAPI Dutch
+            ]
+        }
+    }
+
     @field_validator("ALLOWED_ORIGINS", mode="before")
     @classmethod
     def parse_cors_origins(cls, v):
