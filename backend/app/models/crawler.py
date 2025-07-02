@@ -69,6 +69,7 @@ class PageInfo(BaseModel):
     """Information about a crawled page."""
     url: str
     title: Optional[str] = None
+    content: str = ""  # Store the actual HTML content
     content_length: int = 0
     last_modified: Optional[datetime] = None
     content_type: Optional[str] = None

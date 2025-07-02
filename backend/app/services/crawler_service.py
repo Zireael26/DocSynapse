@@ -152,14 +152,19 @@ class CrawlerService:
                 viewport={"width": 1920, "height": 1080}
             )
 
-            try:
-                # Discover pages to crawl
+            try:                # Discover pages to crawl
                 await self._update_progress(progress, "Discovering pages...")
                 urls_to_crawl = await self._discover_pages(
                     context, request.base_url, request.config
                 )
 
+                # Limit to max_pages if we discovered more than requested
+                if len(urls_to_crawl) > request.config.max_pages:
+                    urls_to_crawl = urls_to_crawl[:request.config.max_pages]
+                    logger.info(f"Limited crawl to {request.config.max_pages} pages")
+
                 progress.pages_discovered = len(urls_to_crawl)
+                logger.debug(f"Will crawl {len(urls_to_crawl)} URLs")
 
                 # Crawl discovered pages
                 pages = []
@@ -167,10 +172,15 @@ class CrawlerService:
                     if progress.status == JobStatus.CANCELLED or self._shutdown_event.is_set():
                         break
 
+                    logger.debug(f"Crawling page {i+1}/{len(urls_to_crawl)}: {url}")
+
                     try:
                         page_info = await self._crawl_page(context, url, request.config)
                         if page_info:
                             pages.append(page_info)
+                            logger.debug(f"Successfully crawled {url}")
+                        else:
+                            logger.warning(f"Failed to crawl {url} - returned None")
 
                         progress.pages_crawled = i + 1
                         progress.progress_percentage = (i + 1) / len(urls_to_crawl) * 100
@@ -183,6 +193,8 @@ class CrawlerService:
                     except Exception as e:
                         logger.warning(f"Failed to crawl {url}: {e}")
                         progress.errors.append(f"Failed to crawl {url}: {str(e)}")
+
+                logger.info(f"Crawled {len(pages)} pages successfully")
 
                 # Update status to processing
                 progress.status = JobStatus.PROCESSING
@@ -231,7 +243,7 @@ class CrawlerService:
 
     async def _discover_pages(self, context: BrowserContext, base_url: str, config: CrawlConfig) -> List[str]:
         """Discover all pages to crawl from the base URL."""
-        urls_found: Set[str] = set()
+        urls_found: Set[str] = {base_url}  # Always include the base URL
         urls_to_process: List[str] = [base_url]
         processed_urls: Set[str] = set()
 
@@ -248,12 +260,14 @@ class CrawlerService:
                     continue
 
                 processed_urls.add(current_url)
+                logger.debug(f"Processing URL for discovery: {current_url}")
 
                 try:
                     # Navigate to page
                     response = await page.goto(current_url, timeout=config.timeout * 1000)
 
                     if not response or response.status >= 400:
+                        logger.warning(f"Failed to load {current_url}: status {response.status if response else 'No response'}")
                         continue
 
                     # Wait for page to load
@@ -272,6 +286,8 @@ class CrawlerService:
                             return links;
                         }
                     """)
+
+                    logger.debug(f"Found {len(links)} links on {current_url}")
 
                     # Process found links
                     for link in links:
@@ -297,6 +313,7 @@ class CrawlerService:
                         if clean_url not in urls_found and clean_url not in processed_urls:
                             urls_found.add(clean_url)
                             urls_to_process.append(clean_url)
+                            logger.debug(f"Added new URL to crawl: {clean_url}")
 
                 except Exception as e:
                     logger.warning(f"Failed to process {current_url}: {e}")
@@ -305,7 +322,9 @@ class CrawlerService:
         finally:
             await page.close()
 
-        return list(urls_found)
+        result_urls = list(urls_found)
+        logger.info(f"Page discovery completed: found {len(result_urls)} URLs")
+        return result_urls
 
     async def _crawl_page(self, context: BrowserContext, url: str, config: CrawlConfig) -> Optional[PageInfo]:
         """Crawl a single page and extract its content."""
@@ -327,18 +346,27 @@ class CrawlerService:
             title = await page.title()
             content = await page.content()
 
+            # Debug: Log content extraction
+            logger.debug(f"Extracted content from {url}: {len(content)} characters")
+
             # Calculate processing time
             processing_time = (datetime.utcnow() - start_time).total_seconds()
 
-            return PageInfo(
+            page_info = PageInfo(
                 url=url,
                 title=title,
+                content=content,  # Store the actual HTML content
                 content_length=len(content),
                 content_type=response.headers.get('content-type', 'text/html'),
                 status_code=response.status,
                 processing_time=processing_time,
                 last_modified=datetime.utcnow()
             )
+
+            # Debug: Verify the content is stored
+            logger.debug(f"Created PageInfo for {url} with content length: {len(page_info.content)}")
+
+            return page_info
 
         except Exception as e:
             logger.warning(f"Failed to crawl page {url}: {e}")

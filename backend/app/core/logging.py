@@ -13,7 +13,7 @@ from typing import Optional
 
 
 def setup_logging(
-    log_level: str = "INFO",
+    log_level: str = "DEBUG",
     log_file: Optional[str] = None,
     max_bytes: int = 10 * 1024 * 1024,  # 10MB
     backup_count: int = 5

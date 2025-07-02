@@ -78,8 +78,20 @@ class ProcessorService:
         """Clean HTML content from pages and extract useful text."""
         cleaned_pages = []
 
+        logger.info(f"Processing {len(pages)} pages for content extraction")
+
         for page in pages:
             try:
+                # Debug: Check what attributes the page object has
+                logger.debug(f"Processing page {page.url}")
+                logger.debug(f"Page object has content attr: {hasattr(page, 'content')}")
+
+                if hasattr(page, 'content'):
+                    logger.debug(f"Content length: {len(page.content)}")
+                else:
+                    logger.error(f"Page object missing content attribute: {dir(page)}")
+                    continue
+
                 # Parse HTML content
                 soup = BeautifulSoup(page.content, 'html.parser')
 
@@ -204,7 +216,7 @@ class ProcessorService:
 
         # Simple deduplication based on content similarity
         unique_pages = []
-        seen_content = set()
+        seen_content = []  # List of sets instead of set of sets
 
         for page in pages:
             # Create a fingerprint of the content
@@ -225,7 +237,7 @@ class ProcessorService:
 
             if not is_duplicate:
                 unique_pages.append(page)
-                seen_content.add(content_words)
+                seen_content.append(content_words)  # Append to list instead of add to set
 
         logger.info(f"Deduplication: {len(pages)} -> {len(unique_pages)} pages")
         return unique_pages
